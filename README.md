@@ -37,7 +37,7 @@ as a submodule at `vendor/auditor-skill` (`7.3.0@6bb2cbf`) and never edits it.
 ### 3. Clone and run locally
 
 ```bash
-git clone --recurse-submodules https://github.com/frcd10/auditor-attest.
+git clone --recurse-submodules https://github.com/Auditor-Dog/auditor-attest
 cd auditor-attest
 pnpm dev                       # → http://localhost:3000 (installs, Postgres, migrations, worker, web)
 pnpm audit:local -- Org/repo   # audit a clone under "examples i runned local/" with your Claude Code login

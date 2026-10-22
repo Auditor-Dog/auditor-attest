@@ -25,7 +25,7 @@ export function byokKek(): Buffer | null {
 
 /** "owner/name" of this site's own public GitHub repository (reports live in it, audits run in its Actions). */
 export function siteRepo(): string {
-  return process.env.SITE_REPO ?? "frcd10/auditor-attest.";
+  return process.env.SITE_REPO ?? "Auditor-Dog/auditor-attest";
 }
 
 export function siteRepoUrl(): string {
