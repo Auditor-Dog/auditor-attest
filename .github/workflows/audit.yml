@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       job_id:
-        description: "Job id (from the site's database)"
+        description: "Job id (from the site's database); use 'selfcheck' to only verify the runner setup"
         required: true
         type: string
 
@@ -60,4 +60,5 @@ jobs:
           CORPUS_VERSION: 7.3.0@6bb2cbf
           MAX_JOB_MINUTES: "120"
           MAX_BUDGET_USD: ${{ vars.MAX_BUDGET_USD }}
-        run: pnpm exec tsx scripts/ci-audit.ts
+        run: |
+          if [ "$JOB_ID" = "selfcheck" ]; then pnpm exec tsx scripts/ci-selfcheck.ts; else pnpm exec tsx scripts/ci-audit.ts; fi
