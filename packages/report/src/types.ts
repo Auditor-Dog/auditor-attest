@@ -27,7 +27,7 @@ export interface Finding {
 }
 
 /** "client" = templates/audit-report.md, "internal" = templates/report-template.md, "legacy" = free-form pre-7.x reports with a Severity Distribution table. */
-export type ReportFormat = "client" | "internal" | "legacy" | "unknown";
+export type ReportFormat = "client" | "internal" | "legacy" | "unknown" | "quick";
 
 export interface ParsedReport {
   format: ReportFormat;

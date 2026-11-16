@@ -43,6 +43,8 @@ export interface IngestInput {
   submitterVerified: boolean;
   jobId?: string | null;
   tier: "quick" | "standard" | "byok" | "manual";
+  /** Corpus depth that produced the report. Default standard. */
+  depth?: "quick" | "standard";
   startedAt?: Date | null;
   finishedAt?: Date | null;
   usage: RunUsage;
@@ -91,7 +93,9 @@ export function usageFromRunJson(run: unknown, fallbackModel: string): RunUsage 
 export async function ingestReport(env: WorkerEnv, input: IngestInput): Promise<IngestOutput> {
   const parsed = parseReport(input.reportMd.toString("utf8"));
   const reportSha256 = sha256Hex(input.reportMd);
-  const storagePath = storagePathFor(input.owner, input.repo, input.commit, input.corpusVersion, input.model);
+  const depth = input.depth ?? "standard";
+  // Standard keeps the historical path; a Quick report of the same commit/corpus/model sits beside it.
+  const storagePath = storagePathFor(input.owner, input.repo, input.commit, input.corpusVersion, input.model) + (depth === "quick" ? "__quick" : "");
   const absDir = join(env.reportsDir, storagePath);
   mkdirSync(absDir, { recursive: true });
 
@@ -116,6 +120,7 @@ export async function ingestReport(env: WorkerEnv, input: IngestInput): Promise<
     commit: input.commit,
     corpusVersion: input.corpusVersion,
     model: input.model,
+    depth,
     reportSha256,
     storagePath,
     critical: parsed.counts.critical,
@@ -137,7 +142,7 @@ export async function ingestReport(env: WorkerEnv, input: IngestInput): Promise<
     costUsd: input.usage.cost_usd,
   };
   const existing = await prisma.report.findUnique({
-    where: { owner_repo_commit_corpusVersion_model: { owner: input.owner, repo: input.repo, commit: input.commit, corpusVersion: input.corpusVersion, model: input.model } },
+    where: { owner_repo_commit_corpusVersion_model_depth: { owner: input.owner, repo: input.repo, commit: input.commit, corpusVersion: input.corpusVersion, model: input.model, depth } },
   });
   const row = existing
     ? await prisma.report.update({ where: { id: existing.id }, data: { ...data, maintainerAckAt: existing.maintainerAckAt, redactUntil: existing.redactUntil ?? redactUntil } })
@@ -171,6 +176,7 @@ export async function ingestReport(env: WorkerEnv, input: IngestInput): Promise<
     parser: { format: parsed.format, declared_counts: parsed.declaredCounts, risk_score: parsed.riskScore, warnings: parsed.warnings },
     job_id: input.jobId ?? null,
     tier: input.tier,
+    depth,
   };
   writeFileSync(join(absDir, "meta.json"), JSON.stringify(meta, null, 2));
 

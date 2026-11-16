@@ -46,6 +46,28 @@ export const SINGLE_AGENT_PROFILE = {
   uncachedInput: 1_000,
 } as const;
 
+/**
+ * Quick depth (`/auditor:quick-scan`, corpus 7.7.5): discovery, static analysis and the
+ * checklist sections and vector rows references/depth-scope.md selects, read in one
+ * session with no agents. The corpus measured it with Claude Opus 5.5 (docs/costs.md):
+ * $6.98 on a whole 3K-line repository (49 sections, 38 vector files), $2.84 to $7.14 on
+ * drafts. Fewer turns over a smaller selection, so a much smaller fixed part. With
+ * SAFETY_FACTOR this gives about $7.4 at 3K lines and $10 at 12K on Opus 5.5.
+ */
+export const QUICK_PROFILE = {
+  outputBase: 150_000,
+  outputPerLoc: 2,
+  cacheReadBase: 5_000_000,
+  cacheReadPerLoc: 400,
+  cacheWriteBase: 250_000,
+  cacheWritePerLoc: 10,
+  uncachedInput: 1_000,
+} as const;
+
+/** Audit depths the site offers. Standard is `/auditor:audit`; Quick is `/auditor:quick-scan`. */
+export type AuditDepth = "quick" | "standard";
+export const AUDIT_DEPTHS: readonly AuditDepth[] = ["quick", "standard"];
+
 /** Multiplier on the mean fit so that every calibration run lands under the estimate. */
 export const SAFETY_FACTOR = 1.4;
 
@@ -60,6 +82,8 @@ export interface EstimateInput {
   /** Corpus scope. Default full. `program` narrows loc/languages to the on-chain code. */
   scope?: AuditScope;
   model: string;
+  /** Audit depth. Default standard. */
+  depth?: AuditDepth;
   /** Multiplier on the fitted mean. Default PRICING_CALIBRATION env, else SAFETY_FACTOR. */
   calibration?: number;
   models?: ModelsConfig;
@@ -90,8 +114,9 @@ export interface Estimate {
   estCostUsd: number;
   /** estCostUsd × LIMIT_HEADROOM, rounded up to the dollar: what to set as the workspace spend limit. */
   suggestedLimitUsd: number;
-  /** Typical wall-clock, minutes (observed 15–22 for Opus 5, up to 36 for Fable). */
+  /** Typical wall-clock, minutes (corpus docs/costs.md: Quick 4–23, Standard 36–56 on Opus 5.5). */
   typicalMinutes: [number, number];
+  depth: AuditDepth;
 }
 
 export function envNumber(name: string, fallback: number): number {
@@ -106,8 +131,8 @@ export function ceilCents(x: number): number {
   return Math.ceil(x * 100 - 1e-9) / 100;
 }
 
-export function estimateTokens(loc: number): TokenBreakdown {
-  const p = SINGLE_AGENT_PROFILE;
+export function estimateTokens(loc: number, depth: AuditDepth = "standard"): TokenBreakdown {
+  const p = depth === "quick" ? QUICK_PROFILE : SINGLE_AGENT_PROFILE;
   const l = Math.max(0, loc);
   const input = p.uncachedInput;
   const cacheRead = Math.round(p.cacheReadBase + p.cacheReadPerLoc * l);
@@ -122,7 +147,8 @@ export function estimate(input: EstimateInput): Estimate {
   const narrowed = applyScope(input.languages, input.markers ?? {}, input.scope ?? "full");
   const loc = input.scope === "program" ? narrowed.loc : input.loc;
   const scope = detectScope(narrowed.languages, narrowed.markers);
-  const tokens = estimateTokens(loc);
+  const depth = input.depth ?? "standard";
+  const tokens = estimateTokens(loc, depth);
   const rawCostUsd =
     (tokens.input * model.input_per_mtok +
       tokens.cacheRead * model.cache_read_per_mtok +
@@ -139,8 +165,14 @@ export function estimate(input: EstimateInput): Estimate {
     calibration,
     estCostUsd,
     suggestedLimitUsd: Math.ceil(estCostUsd * LIMIT_HEADROOM),
-    typicalMinutes: model.tier === "max" ? [30, 40] : [15, 25],
+    typicalMinutes: typicalMinutes(depth, model.tier),
+    depth,
   };
+}
+
+function typicalMinutes(depth: AuditDepth, tier: string): [number, number] {
+  if (depth === "quick") return tier === "max" ? [10, 30] : [5, 25];
+  return tier === "max" ? [45, 75] : [35, 60];
 }
 
 /** Hard spend cap handed to the runner (USD). */

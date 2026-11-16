@@ -29,8 +29,8 @@ Generic secret assignment|(api[_-]?key|secret|token|password)\s*[=:]\s*["'"'"'][
 if [ "$MODE" = "--staged" ]; then
   # Block any staged change inside the pinned corpus submodule.
   if git diff --cached --name-only | grep -q '^vendor/auditor-skill'; then
-    if git diff --cached --submodule=short -- vendor/auditor-skill | grep -q '^Subproject commit'; then
-      echo "✗ Refusing to commit: vendor/auditor-skill submodule pointer changed. The corpus is pinned to 6bb2cbf." >&2
+    if [ "${ALLOW_CORPUS_BUMP:-0}" != "1" ] && git diff --cached --submodule=short -- vendor/auditor-skill | grep -q '^Subproject commit'; then
+      echo "✗ Refusing to commit: vendor/auditor-skill submodule pointer changed. A deliberate bump updates every CORPUS_SHA / CORPUS_VERSION too, then commits with ALLOW_CORPUS_BUMP=1." >&2
       exit 1
     fi
   fi

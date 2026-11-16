@@ -45,7 +45,7 @@ export async function CorpusCard() {
           </>
         )}
         <div><dt className="inline">license </dt><dd className="inline text-white">{info?.license?.spdx_id ?? "MIT"}</dd></div>
-        <div><dt className="inline">pinned here </dt><dd className="inline text-white">7.3.0@6bb2cbf</dd></div>
+        <div><dt className="inline">pinned here </dt><dd className="inline text-white">7.7.5@8ecccb4</dd></div>
       </dl>
       {topics.length > 0 && (
         <ul className="mt-3 flex flex-wrap gap-1.5">

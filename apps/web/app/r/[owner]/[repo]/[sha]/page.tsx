@@ -47,7 +47,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
     <div className="container-x space-y-4 pt-8 pb-6">
       {/* Header */}
       <section className="card card-gradient p-6 sm:p-8">
-        <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Security audit report</div>
+        <div className="text-xs uppercase tracking-wide text-[var(--muted)]">{row.depth === "quick" ? "Quick scan report" : "Security audit report"}</div>
         <h1 className="h-section mt-1 text-2xl sm:text-3xl">
           <a href={`https://github.com/${row.owner}/${row.repo}`} target="_blank" rel="noreferrer">{row.owner}/{row.repo}</a>
         </h1>
@@ -62,12 +62,18 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
             <span className="text-[var(--muted)]">Other audits of this commit: </span>
             {others.map((s) => (
               <a key={s.id} href={`?v=${s.id}`} className="mono mr-3 text-[var(--green)]">
-                {s.corpusVersion} · {s.model} · {when(s.finishedAt ?? s.createdAt)}
+                {s.depth === "quick" ? "Quick · " : ""}{s.corpusVersion} · {s.model} · {when(s.finishedAt ?? s.createdAt)}
               </a>
             ))}
           </div>
         )}
       </section>
+
+      {row.depth === "quick" && (
+        <div className="card p-4 text-sm text-[var(--muted)]">
+          This is a Quick scan: the corpus selected the checklist sections and known-vector files that apply to this code and the model read each of them. It does not give every checklist item a verdict and runs no validation gate. A Standard audit covers the rest.
+        </div>
+      )}
 
       {redacted && (
         <div className="rounded-md border border-[var(--high)] bg-[#2a1f12] p-4 text-sm">

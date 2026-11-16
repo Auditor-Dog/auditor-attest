@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { AUDIT_SCOPES, budgetFor, defaultModelId, enabledModels, envNumber, estimate, loadModels, type AuditScope, type LanguageMix, type RepoMarkers } from "@auditor/pricing";
+import { AUDIT_DEPTHS, AUDIT_SCOPES, budgetFor, type AuditDepth, defaultModelId, enabledModels, envNumber, estimate, loadModels, type AuditScope, type LanguageMix, type RepoMarkers } from "@auditor/pricing";
 import { parseGitHubUrl } from "@auditor/report";
 import type { Prisma } from "@auditor/db";
 import { checkApiKey, modelAvailable } from "@/lib/anthropic";
@@ -60,6 +60,17 @@ export async function createJob(formData: FormData): Promise<void> {
   }
   if (q.truncated) fail("This repository has too many files for the GitHub tree API (100k+). Clone the site and run the audit locally instead.");
 
+  const perDepth = Object.fromEntries(
+    AUDIT_DEPTHS.map((depth) => [
+      depth,
+      Object.fromEntries(
+        models.map((m) => {
+          const e = estimate({ loc: q.loc, languages: q.languages, markers: q.markers, scope: scopeName, model: m.id, models: cfg, depth });
+          return [m.id, { estCostUsd: e.estCostUsd, rawCostUsd: e.rawCostUsd, suggestedLimitUsd: e.suggestedLimitUsd, tokens: e.tokens, typicalMinutes: e.typicalMinutes }];
+        }),
+      ),
+    ]),
+  );
   const perModel = Object.fromEntries(
     models.map((m) => {
       const e = estimate({ loc: q.loc, languages: q.languages, markers: q.markers, scope: scopeName, model: m.id, models: cfg });
@@ -96,7 +107,7 @@ export async function createJob(formData: FormData): Promise<void> {
           calibration: est.calibration,
           priceUsdc: 0,
           attestFeeUsdc: 0,
-          breakdown: { chosen: est.tokens, perModel, excluded: q.excluded, reasons: est.scope.reasons, auditScope: scopeName, source: "github-api", description: q.description, archived: q.archived, defaultBranch: q.defaultBranch } as unknown as Prisma.InputJsonValue,
+          breakdown: { chosen: est.tokens, perModel, perDepth, excluded: q.excluded, reasons: est.scope.reasons, auditScope: scopeName, source: "github-api", description: q.description, archived: q.archived, defaultBranch: q.defaultBranch } as unknown as Prisma.InputJsonValue,
           expiresAt: new Date(Date.now() + ttlMin * 60_000),
         },
       },
@@ -118,10 +129,12 @@ export async function startAudit(formData: FormData): Promise<void> {
   const visibility = String(formData.get("visibility") ?? "public");
   const scope = String(formData.get("scope") ?? "program") as AuditScope;
   const byokKey = String(formData.get("byokKey") ?? "").trim();
+  const depth = String(formData.get("depth") ?? "standard") as AuditDepth;
   const confirmed = formData.get("confirm") === "on";
 
   if (!["public", "private"].includes(visibility)) fail("invalid visibility");
   if (!AUDIT_SCOPES.includes(scope)) fail("invalid scope");
+  if (!AUDIT_DEPTHS.includes(depth)) fail("invalid depth");
   const cfg = loadModels();
   if (!enabledModels(cfg).some((m) => m.id === model)) fail("invalid model");
   if (!confirmed) fail("Please confirm you created a dedicated key with a spend limit and will delete it afterwards.");
@@ -145,16 +158,17 @@ export async function startAudit(formData: FormData): Promise<void> {
     scope,
     model,
     models: cfg,
+    depth,
   });
   const byokCiphertext = encryptSecret(byokKey, kek);
 
   await prisma.$transaction([
     prisma.job.update({
       where: { id: jobId },
-      data: { tier: "byok", model, visibility: visibility as "public" | "private", scope, status: "queued", budgetUsd: budgetFor(est), byokCiphertext, error: null },
+      data: { tier: "byok", model, visibility: visibility as "public" | "private", scope, depth, status: "queued", budgetUsd: budgetFor(est), byokCiphertext, error: null },
     }),
     prisma.quote.update({ where: { jobId }, data: { model, scope: est.scope as unknown as Prisma.InputJsonValue, estCostUsd: est.estCostUsd, estInputTokens: est.tokens.inputTotal, estOutputTokens: est.tokens.output } }),
-    prisma.jobEvent.create({ data: { jobId, message: `configured: ${model} / ${scope} scope / ${visibility}`, data: { estCostUsd: est.estCostUsd, suggestedLimitUsd: est.suggestedLimitUsd } } }),
+    prisma.jobEvent.create({ data: { jobId, message: `configured: ${depth === "quick" ? "Quick scan" : "Standard audit"} / ${model} / ${scope} scope / ${visibility}`, data: { estCostUsd: est.estCostUsd, suggestedLimitUsd: est.suggestedLimitUsd } } }),
   ]);
 
   try {

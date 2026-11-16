@@ -43,8 +43,14 @@ jobs:
       - name: Build shared packages
         run: pnpm -r --filter './packages/**' build
 
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+      - name: Install Claude Code and the sandbox it needs
+        # 2.1.304 is the version the corpus (7.7.5) pins in its own plugin-validate workflow.
+        # The corpus's strict template turns on Claude Code's sandbox with failIfUnavailable,
+        # which on Linux needs bubblewrap and socat.
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap socat
+          npm install -g @anthropic-ai/claude-code@2.1.304
+          claude --version
 
       - name: Run the audit
         env:
@@ -57,7 +63,7 @@ jobs:
           AUDIT_ATTEST_PROGRAM_ID: ${{ vars.AUDIT_ATTEST_PROGRAM_ID || 'sXtvdoheTtFBukx8vCppJHhiiJHW2xa3xc5KaPAhzkC' }}
           RPC_URL: ${{ vars.RPC_URL || 'https://api.devnet.solana.com' }}
           CLUSTER: devnet
-          CORPUS_VERSION: 7.3.0@6bb2cbf
+          CORPUS_VERSION: 7.7.5@8ecccb4
           MAX_JOB_MINUTES: "120"
           MAX_BUDGET_USD: ${{ vars.MAX_BUDGET_USD }}
         run: |

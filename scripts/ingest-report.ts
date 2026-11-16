@@ -4,7 +4,7 @@
  * into the storage contract + database, optionally attesting it on-chain.
  *
  *   pnpm ingest <report.md> --repo <url> --commit <sha> --model <id> [--attest]
- *        [--visibility public|private] [--verified] [--corpus 7.3.0@6bb2cbf]
+ *        [--visibility public|private] [--verified] [--corpus 7.7.5@8ecccb4]
  *        [--input-tokens N --output-tokens N --cache-read N --cache-write N --cost-usd X]
  *        [--run-json run.json]  (usage is read from it when given)
  */

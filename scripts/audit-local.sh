@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the pinned corpus (7.3.0@6bb2cbf) against one of your local clones with YOUR Claude
+# Run the pinned corpus (7.7.5@8ecccb4) against one of your local clones with YOUR Claude
 # Code login, single agent, no API key, and record the result as a new audit_N/ next to
 # the earlier ones. The site then shows both audits of the repo.
 #
@@ -38,8 +38,8 @@ EXAMPLES="$ROOT/examples i runned local"
 DIR="$EXAMPLES/$TARGET"
 [ -d "$DIR/.git" ] || { echo "not a git clone: $DIR" >&2; exit 1; }
 CORPUS="$ROOT/vendor/auditor-skill"
-[ "$(git -C "$CORPUS" rev-parse HEAD)" = "6bb2cbfb64334b0d1af8f1003d2f61ff3157ef52" ] || { echo "corpus submodule is not at 6bb2cbf" >&2; exit 1; }
-CORPUS_VERSION="${CORPUS_VERSION:-7.3.0@6bb2cbf}"
+[ "$(git -C "$CORPUS" rev-parse HEAD)" = "8ecccb4a4013d296c1798ba279c1af605f47d317" ] || { echo "corpus submodule is not at 8ecccb4" >&2; exit 1; }
+CORPUS_VERSION="${CORPUS_VERSION:-7.7.5@8ecccb4}"
 
 # Claude Code binary: PATH first, then the VS Code extension's native binary.
 CLI="$(command -v claude || true)"

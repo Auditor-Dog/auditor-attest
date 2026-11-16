@@ -66,3 +66,23 @@ figure, so a runaway run stops at the limit instead of at the workspace ceiling.
 
 Full-scope runs (`--scope full`) have not been calibrated. The site defaults to program
 scope and says so next to the estimate.
+
+## Corpus 7.7.5 (2026-11-16)
+
+The site now runs the corpus's own commands in its strict mode instead of walking
+`FULL-AUDIT.md` by hand: Standard is `/auditor:audit . --scope program --strict` and Quick
+is `/auditor:quick-scan . --strict`. No run of ours has been measured on 7.7.5 yet; the
+figures come from the corpus's `docs/costs.md` (Claude Opus 5.5, Claude Code 2.1.304):
+
+| Depth | 3K-line program | 7K-line program | 12K-line program |
+|---|---:|---:|---:|
+| Quick (`quick-scan`) | $6.98 · 22.6 min | $7.14 · 11.9 min (draft) | $2.84 · 5.5 min (draft) |
+| Standard (`audit --scope program`) | $13.07 · 36 min | $14.70 · 36 min | $18.83 · 56 min |
+
+- **Standard** keeps `SINGLE_AGENT_PROFILE`. Priced at Opus 5.5's rates it gives $15.2,
+  $18.1 and $21.7 for those three sizes, above each measured run and within 1.5× of it.
+- **Quick** uses `QUICK_PROFILE` (a smaller fixed part: one session over the selected
+  subset). It gives $7.4 at 3K lines and $10.2 at 12K on Opus 5.5.
+- The test suite checks both depths against these runs.
+
+Re-fit both profiles once we have our own 7.7.5 runs.

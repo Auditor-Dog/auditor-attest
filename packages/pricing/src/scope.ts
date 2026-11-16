@@ -11,28 +11,28 @@ export interface Checklist {
   items: number;
 }
 
-/** Item counts from SKILL.md "Checklists Reference" (7.3.0). */
+/** Item counts from SKILL.md "Checklists Reference" (7.7.5). */
 export const CHECKLISTS: readonly Checklist[] = [
   { id: "01", name: "Account Validation", items: 90 },
-  { id: "02", name: "Access Control", items: 50 },
+  { id: "02", name: "Access Control", items: 55 },
   { id: "03", name: "Arithmetic Safety", items: 63 },
   { id: "04", name: "CPI & PDA Safety", items: 70 },
-  { id: "05", name: "State Machine & Lifecycle", items: 72 },
-  { id: "06", name: "Economic & Logic Attacks", items: 89 },
-  { id: "07", name: "OpSec & Governance", items: 85 },
+  { id: "05", name: "State Machine & Lifecycle", items: 74 },
+  { id: "06", name: "Economic & Logic Attacks", items: 92 },
+  { id: "07", name: "OpSec & Governance", items: 87 },
   { id: "08", name: "TypeScript Safety", items: 64 },
-  { id: "09", name: "Backend Security", items: 131 },
+  { id: "09", name: "Backend Security", items: 133 },
   { id: "10", name: "Frontend Security", items: 84 },
-  { id: "11", name: "Supply Chain & Dependencies", items: 52 },
+  { id: "11", name: "Supply Chain & Dependencies", items: 65 },
   { id: "12", name: "Secrets & Key Management", items: 53 },
-  { id: "13", name: "Deployment & Infrastructure", items: 89 },
+  { id: "13", name: "Deployment & Infrastructure", items: 102 },
   { id: "14", name: "Python Safety", items: 82 },
   { id: "15", name: "General Language Safety", items: 88 },
-  { id: "16", name: "Formal Verification & Testing", items: 72 },
-  { id: "17", name: "Logging, Monitoring & IR", items: 65 },
+  { id: "16", name: "Formal Verification & Testing", items: 73 },
+  { id: "17", name: "Logging, Monitoring & IR", items: 68 },
   { id: "18", name: "Privacy, Compliance & Change Mgmt", items: 60 },
-  { id: "19", name: "AI Agent Security", items: 33 },
-  { id: "20", name: "Rust Off-Chain Services", items: 21 },
+  { id: "19", name: "AI Agent Security", items: 39 },
+  { id: "20", name: "Rust Off-Chain Services", items: 23 },
 ];
 
 export interface VectorGroup {
@@ -42,7 +42,7 @@ export interface VectorGroup {
   count: number;
 }
 
-/** Section groupings from known-vectors/INDEX.md (7.3.0). */
+/** Section groupings from known-vectors/INDEX.md (7.7.5). */
 export const VECTOR_GROUPS: readonly VectorGroup[] = [
   { id: "crypto", name: "Crypto / On-Chain", range: "1-30", count: 30 },
   { id: "backend", name: "Backend / API", range: "31-55", count: 25 },
@@ -55,6 +55,10 @@ export const VECTOR_GROUPS: readonly VectorGroup[] = [
   { id: "dos-float-keeper-clmm", name: "DoS, Float Math, Keeper Lifecycle & CLMM Math", range: "127-131", count: 5 },
   { id: "token-registry", name: "Token Registries, Risk Signals & Permissioned Tokens", range: "132-134", count: 3 },
   { id: "tx-format", name: "Transaction Format & Runtime-Upgrade Readiness", range: "135-136", count: 2 },
+  { id: "vendored-programs", name: "Vendored Programs & White-Label Fleets", range: "137", count: 1 },
+  { id: "runtime-timing", name: "Runtime Timing: 200 ms Slots & the Alpenglow Clock", range: "138", count: 1 },
+  { id: "ci-trigger", name: "CI/CD Trigger Trust — GitHub Actions", range: "139-140", count: 2 },
+  { id: "host-kernel", name: "Host Kernel & Network Attack Surface", range: "141", count: 1 },
 ];
 
 /** Repo markers the corpus greps for (SKILL.md Step 1 + discovery). */
@@ -96,7 +100,7 @@ export interface Scope {
 }
 
 const ALWAYS_CHECKLISTS = ["11", "12", "13", "16", "17", "18"];
-const ALWAYS_VECTORS = ["devops", "tx-format"];
+const ALWAYS_VECTORS = ["devops", "tx-format", "ci-trigger", "host-kernel"];
 
 const OTHER_LANGS = new Set(["Go", "Java", "Ruby", "PHP", "Kotlin", "Scala", "C", "C++", "C#", "Swift", "Elixir", "Solidity", "Move"]);
 
@@ -109,7 +113,7 @@ export function detectScope(languages: LanguageMix, markers: Partial<RepoMarkers
   const rust = has("Rust") || markers.anchorToml || markers.cargoToml;
   if (rust) {
     ["01", "02", "03", "04", "05", "06", "07"].forEach((c) => cl.add(c));
-    ["crypto", "modern-onchain", "governance-randomness", "custody-consumers", "dos-float-keeper-clmm"].forEach((g) => vg.add(g));
+    ["crypto", "modern-onchain", "governance-randomness", "custody-consumers", "dos-float-keeper-clmm", "vendored-programs", "runtime-timing"].forEach((g) => vg.add(g));
     reasons.push(markers.anchorToml ? "Anchor.toml / .rs → 01-07 + on-chain vectors" : ".rs / Cargo.toml → 01-07 + on-chain vectors");
     if (markers.rustOffchain) {
       cl.add("20");

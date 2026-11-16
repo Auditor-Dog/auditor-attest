@@ -1,23 +1,23 @@
 {
   "$comment": "Model ids and prices (USD per 1M tokens, Anthropic first-party API). Maintained by hand. The runner, pricing engine and web read this file; nothing hardcodes a model id. cache_* rates follow Anthropic's standard prompt-caching multipliers (read = 0.1x input, write = 1.25x input) unless a model publishes a different rate.",
-  "updated": "2026-09-10",
-  "default": "claude-opus-5",
+  "updated": "2026-11-16",
+  "default": "claude-opus-5-5",
   "models": [
     {
-      "id": "claude-opus-5",
-      "label": "Claude Opus 5",
+      "id": "claude-opus-5-5",
+      "label": "Claude Opus 5.5",
       "tier": "depth",
       "enabled": true,
-      "input_per_mtok": 5.0,
-      "output_per_mtok": 25.0,
-      "cache_read_per_mtok": 0.5,
-      "cache_write_per_mtok": 6.25,
+      "input_per_mtok": 4.0,
+      "output_per_mtok": 20.0,
+      "cache_read_per_mtok": 0.2,
+      "cache_write_per_mtok": 5.0,
       "context_tokens": 1000000,
-      "notes": "Default for the paid tier. Best at cross-file logic and economic attack paths."
+      "notes": "Default. The model the corpus measured its depths with (docs/costs.md, 7.7.5)."
     },
     {
-      "id": "claude-sonnet-5",
-      "label": "Claude Sonnet 5",
+      "id": "claude-sonnet-5-5",
+      "label": "Claude Sonnet 5.5",
       "tier": "value",
       "enabled": true,
       "input_per_mtok": 2.0,
@@ -25,7 +25,19 @@
       "cache_read_per_mtok": 0.2,
       "cache_write_per_mtok": 2.5,
       "context_tokens": 1000000,
-      "notes": "Best value. Strong on checklist compliance and pattern-matchable items."
+      "notes": "About half the cost of Opus 5.5. Strong on checklist compliance and pattern-matchable items."
+    },
+    {
+      "id": "claude-fable-5-1",
+      "label": "Claude Fable 5.1",
+      "tier": "max",
+      "enabled": true,
+      "input_per_mtok": 10.0,
+      "output_per_mtok": 50.0,
+      "cache_read_per_mtok": 0.25,
+      "cache_write_per_mtok": 12.5,
+      "context_tokens": 1000000,
+      "notes": "Highest capability and highest price. Reads less from the prompt cache than Opus on our runs, so the real cost lands under the estimate."
     },
     {
       "id": "claude-haiku-4-5",
@@ -37,7 +49,31 @@
       "cache_read_per_mtok": 0.1,
       "cache_write_per_mtok": 1.25,
       "context_tokens": 200000,
-      "notes": "Fast grep-heavy scan. Will miss logic bugs; suitable for CI-style passes."
+      "notes": "Cheapest. Will miss cross-file logic bugs; fine for a Quick triage, weak for Standard."
+    },
+    {
+      "id": "claude-opus-5",
+      "label": "Claude Opus 5",
+      "tier": "depth",
+      "enabled": false,
+      "input_per_mtok": 5.0,
+      "output_per_mtok": 25.0,
+      "cache_read_per_mtok": 0.5,
+      "cache_write_per_mtok": 6.25,
+      "context_tokens": 1000000,
+      "notes": "Previous generation. Kept for reports produced with it; not offered for new runs."
+    },
+    {
+      "id": "claude-sonnet-5",
+      "label": "Claude Sonnet 5",
+      "tier": "value",
+      "enabled": false,
+      "input_per_mtok": 2.0,
+      "output_per_mtok": 10.0,
+      "cache_read_per_mtok": 0.2,
+      "cache_write_per_mtok": 2.5,
+      "context_tokens": 1000000,
+      "notes": "Previous generation. Kept for reports produced with it; not offered for new runs."
     },
     {
       "id": "claude-opus-4-5",
@@ -50,18 +86,6 @@
       "cache_write_per_mtok": 6.25,
       "context_tokens": 200000,
       "notes": "Previous generation. Kept for reports produced by hand before this platform existed; not offered for new runs."
-    },
-    {
-      "id": "claude-fable-5-1",
-      "label": "Claude Fable 5.1",
-      "tier": "max",
-      "enabled": false,
-      "input_per_mtok": 10.0,
-      "output_per_mtok": 50.0,
-      "cache_read_per_mtok": 0.25,
-      "cache_write_per_mtok": 12.5,
-      "context_tokens": 1000000,
-      "notes": "Disabled by default: highest cost. Enable if you want to offer a maximum-depth tier."
     }
   ]
 }

@@ -4,7 +4,7 @@
 
 Paste a public GitHub link, get a cost estimate, paste a throwaway Anthropic API key, and
 an AI auditor runs the open-source [auditor-skill](https://github.com/solanabr/auditor-skill)
-corpus (20 checklists, 1,413 items, 136 known attack vectors) against the code. The report
+corpus (20 checklists, 1,465 items, 141 known attack vectors) against the code, as a Quick scan or a Standard audit. The report
 is committed to this repository byte-for-byte and its hash, commit, corpus version, model
 and severity counts are written to an account on Solana devnet that anyone can verify.
 
@@ -32,7 +32,7 @@ claude --plugin-dir ../auditor-skill
 ```
 
 The corpus is a Claude Code plugin; nothing of ours is involved. This repository pins it
-as a submodule at `vendor/auditor-skill` (`7.3.0@6bb2cbf`) and never edits it.
+as a submodule at `vendor/auditor-skill` (`7.7.5@8ecccb4`) and never edits it.
 
 ### 3. Clone and run locally
 
@@ -57,7 +57,7 @@ browser ─ paste link ─▶ Vercel (apps/web)
                           └─ workflow_dispatch ─▶ GitHub Actions (.github/workflows/audit.yml)
                                                    │ scripts/ci-audit.ts on a disposable machine:
                                                    │ claims the job, wipes the stored key, clones the commit
-                                                   │ runs the corpus with Claude Code, single agent, read-only tools
+                                                   │ runs /auditor:quick-scan or /auditor:audit in the corpus strict mode
                                                    │ parses the report, attests on devnet, writes the database
                                                    └─ commits reports/<owner>/<repo>/<sha>/… back here
 ```

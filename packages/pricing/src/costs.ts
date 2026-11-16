@@ -28,9 +28,9 @@ export const CORPUS_FULL_TOKENS = {
   templatesAndDiscovery: 32_000,
 } as const;
 
-/** Item and vector totals the corpus ships with (SKILL.md, known-vectors/INDEX.md). */
-export const TOTAL_CHECKLIST_ITEMS = 1_413;
-export const TOTAL_KNOWN_VECTORS = 136;
+/** Item and vector totals the corpus ships with (SKILL.md, known-vectors/INDEX.md), 7.7.5. */
+export const TOTAL_CHECKLIST_ITEMS = 1_465;
+export const TOTAL_KNOWN_VECTORS = 141;
 
 /**
  * Output-token estimate by repo size, COSTS.md § "Cost by Repo Size" (Anthropic table).

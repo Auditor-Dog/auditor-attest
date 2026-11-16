@@ -32,6 +32,7 @@ export interface ReportMeta {
   };
   job_id?: string | null;
   tier?: "quick" | "standard" | "byok" | "manual";
+  depth?: "quick" | "standard";
 }
 
 /** Filesystem-safe slug for a corpus version or model id ("7.3.0@6bb2cbf" → "7.3.0-6bb2cbf"). */

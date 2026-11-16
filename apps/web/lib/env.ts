@@ -11,7 +11,7 @@ export function reportsDir(): string {
 }
 
 export function corpusVersion(): string {
-  return process.env.CORPUS_VERSION ?? "7.3.0@6bb2cbf";
+  return process.env.CORPUS_VERSION ?? "7.7.5@8ecccb4";
 }
 
 export function siteUrl(): string {

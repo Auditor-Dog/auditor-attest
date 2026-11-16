@@ -40,7 +40,7 @@ describe("scope detection", () => {
     expect(s.checklists).not.toContain("14");
     expect(s.vectorGroups).toContain("crypto");
     expect(s.vectorGroups).not.toContain("frontend");
-    expect(s.itemCount).toBe(519 + 391);
+    expect(s.itemCount).toBe(531 + 421);
   });
   it("empty repo still has the always-on set", () => {
     const s = detectScope({});
@@ -82,6 +82,23 @@ describe("single-agent token profile", () => {
     expect(ceilCents(1.001)).toBe(1.01);
     expect(ceilCents(1.0)).toBe(1.0);
     expect(ceilCents(0.1 + 0.2)).toBe(0.3);
+  });
+});
+
+describe("depths at corpus 7.7.5 (docs/costs.md, Claude Opus 5.5)", () => {
+  const opus55: ModelsConfig = { default: "o", models: [{ id: "o", label: "Opus 5.5", tier: "depth", enabled: true, input_per_mtok: 4, output_per_mtok: 20, cache_read_per_mtok: 0.2, cache_write_per_mtok: 5 }] };
+  const run = (loc: number, depth: "quick" | "standard") => estimate({ loc, languages: { Rust: { code: loc, comments: 0, blanks: 0, files: 5 } }, scope: "program", model: "o", models: opus55, depth });
+  it("Standard covers the measured runs: 3K $13.07, 7K $14.70, 12K $18.83", () => {
+    for (const [loc, actual] of [[3000, 13.07], [7000, 14.7], [12000, 18.83]] as const) {
+      expect(run(loc, "standard").estCostUsd).toBeGreaterThanOrEqual(actual);
+      expect(run(loc, "standard").estCostUsd).toBeLessThan(actual * 1.5);
+    }
+  });
+  it("Quick covers the measured runs: 3K $6.98, 12K $2.84, and stays well under Standard", () => {
+    expect(run(3000, "quick").estCostUsd).toBeGreaterThanOrEqual(6.98);
+    expect(run(12000, "quick").estCostUsd).toBeGreaterThanOrEqual(2.84);
+    expect(run(3000, "quick").estCostUsd).toBeLessThan(run(3000, "standard").estCostUsd / 1.5);
+    expect(run(3000, "quick").depth).toBe("quick");
   });
 });
 

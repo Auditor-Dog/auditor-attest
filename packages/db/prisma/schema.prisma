@@ -109,6 +109,8 @@ model Job {
   autoEnqueue Boolean @default(false)
   /// Audit scope passed to the corpus: "full" (whole repo) or "program" (on-chain code only).
   scope String @default("full")
+  /// Corpus depth: "standard" (/auditor:audit) or "quick" (/auditor:quick-scan).
+  depth String @default("standard")
 
   error       String?
   containerId String?
@@ -209,6 +211,8 @@ model Report {
   commit        String // full 40-char sha
   corpusVersion String
   model         String
+  /// "standard" (/auditor:audit) or "quick" (/auditor:quick-scan).
+  depth         String  @default("standard")
   reportSha256  String
   /// Path relative to REPORTS_DIR: <owner>/<repo>/<commit>
   storagePath   String
@@ -248,7 +252,7 @@ model Report {
 
   /// One report per (repo, commit, corpus, model): the same commit can be audited again
   /// with a newer corpus or another model and both stay visible.
-  @@unique([owner, repo, commit, corpusVersion, model])
+  @@unique([owner, repo, commit, corpusVersion, model, depth])
   @@index([owner, repo, commit])
   @@index([visibility, createdAt])
   @@index([owner, repo])

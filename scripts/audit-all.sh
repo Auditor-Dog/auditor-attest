@@ -8,7 +8,7 @@
 # the queue probes the CLI with a tiny prompt and waits, in 15-minute steps, until the
 # limit has reset. A repo is only counted as failed when the run actually did work.
 #
-#   pnpm audit:all                                   # everything not yet audited with 7.3.0
+#   pnpm audit:all                                   # everything not yet audited with 7.7.5
 #   pnpm audit:all -- --only kamino                  # substring filter
 #   pnpm audit:all -- --only "Serum/swap,Kamino/kfarms"   # exact list (comma-separated)
 #   pnpm audit:all -- --model opus --scope program   # anything else goes to audit-local.sh
@@ -21,7 +21,7 @@ while [ $# -gt 0 ]; do
     *) EXTRA+=("$1"); shift ;;
   esac
 done
-CORPUS_VERSION="${CORPUS_VERSION:-7.3.0@6bb2cbf}"
+CORPUS_VERSION="${CORPUS_VERSION:-7.7.5@8ecccb4}"
 LOG="audit-all.log"
 MAX_WAIT_MIN="${MAX_WAIT_MIN:-720}"   # give up waiting for capacity after 12 h
 

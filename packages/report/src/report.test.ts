@@ -191,3 +191,21 @@ describe("hash", () => {
     expect(sha256Hex("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
   });
 });
+
+describe("quick report (corpus 7.7 pr-report)", () => {
+  const md = readFileSync(resolve(fixtures, "quick-sample.md"), "utf8");
+  const p = parseReport(md);
+  it("is recognised and counted from the Summary row, lows included", () => {
+    expect(p.format).toBe("quick");
+    expect(p.counts).toEqual({ critical: 1, high: 0, medium: 1, low: 2, info: 1 });
+    expect(p.countsSource).toBe("declared");
+    expect(p.highestSeverity).toBe(9);
+    expect(p.meta.commit).toBe("ca89527f0e2b4b6c9d1a3e5f7a9b1c3d5e7f9a1b");
+    expect(p.findings.map((f) => f.id)).toEqual(["F-001", "F-002"]);
+    expect(p.warnings.filter((w) => w.startsWith("declared"))).toEqual([]);
+  });
+  it("reads 'none' as zero findings", () => {
+    const none = parseReport(md.replace("1 × 9, 1 × 5, 2 × 3, 1 × 2", "none").replace(/## Findings[\s\S]*## Verdicts/, "## Findings\n\nNo findings on the reviewed surface.\n\n## Verdicts"));
+    expect(none.counts).toEqual({ critical: 0, high: 0, medium: 0, low: 0, info: 0 });
+  });
+});

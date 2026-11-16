@@ -73,6 +73,8 @@ export function parseSeverityCell(cell: string): { tier: SeverityTier; score: nu
 }
 
 function detectFormat(text: string): ReportFormat {
+  // 7.7 Quick depth (quick-scan / diff-audit / deep-review), templates/pr-report.md
+  if (/^#\s+Quick (?:scan|review)\b/m.test(text) && /^\|\s*\*\*Findings\*\*\s*\|/m.test(text)) return "quick";
   if (/^#{2,5}\s+AUD-\d+/m.test(text) || /Findings Summary by Severity/.test(text)) return "client";
   if (/^#{2,5}\s+\[F-\d+\]/m.test(text) && /^\|\s*(10|[1-9])\s*\|\s*[^|]*(CRITICAL|HIGH|MEDIUM|LOW|INFO)/im.test(text)) return "internal";
   if (/Severity Distribution/i.test(text) || /^#{2,5}\s+(?:\[[A-Z]+\]\s+)?\[?[A-Z]{1,6}-\d{1,4}\]?/m.test(text)) return "legacy";
@@ -170,6 +172,24 @@ function parseDeclaredCounts(lines: string[]): SeverityCounts | null {
   return found ? counts : null;
 }
 
+/**
+ * Quick reports (templates/pr-report.md) declare counts in one Summary row:
+ *   | **Findings** | 1 × 8, 2 × 5 |   or   | **Findings** | none |
+ * Severities 1-3 get no finding block there, so this row is the only full count.
+ */
+function parseQuickCounts(lines: string[]): SeverityCounts | null {
+  const row = firstMatch(lines, /^\|\s*\*\*Findings\*\*\s*\|\s*([^|]*)\|/);
+  if (row === null) return null;
+  const counts = emptyCounts();
+  if (/^\s*(none|0|no findings)/i.test(stripMd(row))) return counts;
+  let found = false;
+  for (const m of row.matchAll(/(\d+)\s*[×x*]\s*(10|[1-9])\b/g)) {
+    counts[tierForScore(Number(m[2]))] += Number(m[1]);
+    found = true;
+  }
+  return found ? counts : null;
+}
+
 function firstMatch(lines: string[], re: RegExp): string | null {
   for (const l of lines) {
     const m = l.match(re);
@@ -193,13 +213,15 @@ export function parseReport(markdown: string): ParsedReport {
   const findingCounts = emptyCounts();
   for (const f of findings) if (f.tier) findingCounts[f.tier] += 1;
 
-  const declaredCounts = parseDeclaredCounts(lines);
+  const declaredCounts = format === "quick" ? parseQuickCounts(lines) : parseDeclaredCounts(lines);
   let counts: SeverityCounts;
   let countsSource: ParsedReport["countsSource"];
   if (declaredCounts) {
     counts = declaredCounts;
     countsSource = "declared";
     for (const t of Object.keys(counts) as SeverityTier[]) {
+      // Quick reports give severities 1-3 no block, so low/info are compared only for the others.
+      if (format === "quick" && (t === "low" || t === "info")) continue;
       if (declaredCounts[t] !== findingCounts[t]) warnings.push(`declared ${t} count ${declaredCounts[t]} ≠ parsed finding blocks ${findingCounts[t]}`);
     }
   } else if (findings.length) {
@@ -212,7 +234,9 @@ export function parseReport(markdown: string): ParsedReport {
     warnings.push("no severity table and no finding blocks recognised");
   }
 
-  const metricsHighest = numberOrNull(firstMatch(lines, /^\|\s*Highest severity found\s*\|\s*([^|]*)\|/i));
+  const metricsHighest =
+    numberOrNull(firstMatch(lines, /^\|\s*Highest severity found\s*\|\s*([^|]*)\|/i)) ??
+    numberOrNull(firstMatch(lines, /^\|\s*\*\*Highest severity\*\*\s*\|\s*([^|]*)\|/i));
   const scored = findings.filter((f) => f.tier !== null);
   const findingsHighest = scored.length ? Math.max(...scored.map((f) => f.score ?? scoreForTier(f.tier!))) : null;
   const tiers: SeverityTier[] = ["critical", "high", "medium", "low", "info"];
@@ -236,7 +260,8 @@ export function parseReport(markdown: string): ParsedReport {
       firstMatch(lines, /^\|\s*\*\*Repository\*\*\s*\|\s*([^|]+)\|/),
     commit:
       firstMatch(lines, /^\*\*Commit:\*\*\s*`?([0-9a-fA-F]{7,40})`?/) ??
-      firstMatch(lines, /^\|\s*\*\*(?:Audited Commit|Review Start Commit|Commit)\*\*\s*\|\s*`?([0-9a-fA-F]{7,40})`?/),
+      firstMatch(lines, /^\|\s*\*\*(?:Audited Commit|Review Start Commit|Commit)\*\*\s*\|\s*`?([0-9a-fA-F]{7,40})`?/) ??
+      firstMatch(lines, /^\s*-\s*\*\*Pinned:\*\*\s*HEAD\s*`([0-9a-fA-F]{7,40})`/),
     date:
       firstMatch(lines, /^\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})/) ??
       firstMatch(lines, /^\|\s*\*\*(?:Report Published|Date)\*\*\s*\|\s*(\d{4}-\d{2}-\d{2})/),

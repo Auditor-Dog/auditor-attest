@@ -51,7 +51,7 @@ export default async function Home() {
               Security audits for Solana programs, with a record on-chain.
             </h1>
             <p className="mt-4 text-lg text-[var(--muted)]">
-              Auditor Dog runs the open-source <a href={CORPUS_URL} target="_blank" rel="noreferrer" className="text-white underline">auditor-skill</a> corpus by solanabr against a public GitHub repository: 20 checklists, 1,413 items and 136 known attack vectors, applied by a single model session with read-only tools. The report is published in full; its hash, the commit, the corpus version, the model and the severity counts are written to a Solana account anyone can read.
+              Auditor Dog runs the open-source <a href={CORPUS_URL} target="_blank" rel="noreferrer" className="text-white underline">auditor-skill</a> corpus by solanabr against a public GitHub repository: 20 checklists, 1,465 items and 141 known attack vectors, at one of two depths, a Quick scan or a Standard audit. The report is published in full; its hash, the commit, the corpus version, the model and the severity counts are written to a Solana account anyone can read.
             </p>
             <form id="start" action={createJob} className="mt-4 flex flex-col gap-3 sm:flex-row">
               <input name="url" type="url" required placeholder="https://github.com/owner/repo" className="input mono flex-1 text-sm" />
@@ -85,9 +85,9 @@ export default async function Home() {
         <h2 className="h-section text-2xl sm:text-3xl">What happens when you submit a repository</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {[
-            ["Estimate", "The repository is sized through the GitHub API, without cloning. You see the expected model cost for each supported model before anything runs. The figure is an upper bound fitted on our own audits, with a 1.4× safety factor; the calibration data is in the repository."],
+            ["Estimate", "The repository is sized through the GitHub API, without cloning. You see the expected model cost of each depth on each supported model before anything runs. Each figure is an upper bound with a 1.4× safety factor; the calibration data is in the repository."],
             ["Your key, your bill", "You create a dedicated key in an Anthropic workspace with a spend limit (the page tells you the number) and paste it. We verify it with one free API call, encrypt it, and wipe it the moment the run starts. The model usage is billed by Anthropic to you. We have no fees."],
-            ["A disposable machine", "The audit runs on a fresh GitHub Actions runner in our public repository. It clones the exact commit, loads the corpus as a Claude Code plugin and walks it in one linear session: Read, Grep and read-only shell commands only, no subagents, nothing from the audited repository is ever built or executed. The run log is public."],
+            ["A disposable machine", "The audit runs on a fresh GitHub Actions runner in our public repository. It clones the exact commit, deletes the repository's own Claude Code config, and runs the corpus command in the corpus's strict mode: no settings or MCP servers from the repository, builds switched off, Claude Code's sandbox on. Nothing from the audited repository is ever built or executed. The run log is public."],
             ["Report and attestation", `The report is committed to our repository byte-for-byte and rendered here. The attester key writes one account per (repository, commit) on ${clusterLabel()}: repository hash, commit, corpus version, model, report sha256, severity counts and timestamp. The address derives from the URL and the commit, so no database is needed to find it.`],
           ].map(([title, body]) => (
             <div key={title} className="card p-5">
@@ -97,8 +97,34 @@ export default async function Home() {
           ))}
         </div>
         <p className="mt-4 max-w-3xl text-sm text-[var(--muted)]">
-          This is a thorough first pass by a model, produced in 15 to 25 minutes. It is not a substitute for a human audit, and an attestation is a record that a given report was produced for a given commit, not a statement that the code is safe.
+          A Quick scan takes 5 to 25 minutes and a Standard audit 35 to 60. Either is a thorough first pass by a model. It is not a substitute for a human audit, and an attestation is a record that a given report was produced for a given commit, not a statement that the code is safe.
         </p>
+      </section>
+
+      {/* Depths */}
+      <section id="depths" className="container-x scroll-mt-24">
+        <h2 className="h-section text-2xl sm:text-3xl">Quick scan or Standard audit</h2>
+        <div className="mt-5 overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Quick scan</th>
+                <th>Standard audit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td className="text-[var(--muted)]">Corpus command</td><td className="mono">/auditor:quick-scan</td><td className="mono">/auditor:audit</td></tr>
+              <tr><td className="text-[var(--muted)]">What is read</td><td>The checklist sections and known-vector files the corpus selects for what it finds in the code</td><td>Every in-scope checklist item and known vector, each with an explicit verdict</td></tr>
+              <tr><td className="text-[var(--muted)]">How</td><td>One session, no sub-agents</td><td>Sub-agents for context reconstruction and false-positive review</td></tr>
+              <tr><td className="text-[var(--muted)]">Findings of severity 6+</td><td>Reported with the same finding block</td><td>Must pass the corpus&apos;s validation gate</td></tr>
+              <tr><td className="text-[var(--muted)]">Extras</td><td>None</td><td>Maturity scorecard and remediation plan</td></tr>
+              <tr><td className="text-[var(--muted)]">Cost on Opus 5.5 (measured by the corpus)</td><td className="mono">$3 to $8</td><td className="mono">$13 to $19</td></tr>
+              <tr><td className="text-[var(--muted)]">Time</td><td className="mono">5 to 25 min</td><td className="mono">35 to 60 min</td></tr>
+              <tr><td className="text-[var(--muted)]">Good for</td><td>A first look, a cheap check, a re-check after a fix</td><td>Before a deployment, or a report other people will rely on</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {/* Recent audits */}
@@ -176,7 +202,7 @@ pnpm audit:local -- Org/repo`}</pre>
             <div className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Audit</div>
             <div className="mt-2 text-3xl font-bold">Your model usage</div>
             <p className="mt-3 text-sm text-[var(--muted)]">
-              Billed by Anthropic to your key at list prices. Measured on eight on-chain programs with Claude Opus 5: $16 to $32 each. Models offered: {models.map((m) => m.label).join(", ")}.
+              Billed by Anthropic to your key at list prices. On Claude Opus 5.5 the corpus measured a Quick scan at $3 to $8 and a Standard audit at $13 to $19 for programs of 3,000 to 12,000 lines. Models offered: {models.map((m) => m.label).join(", ")}.
             </p>
           </div>
           <div className="card p-5">

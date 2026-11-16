@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 const LIVE = new Set(["quoting", "quote_running", "queued", "running", "ingesting"]);
 type PerModel = Record<string, { estCostUsd: number; rawCostUsd: number; suggestedLimitUsd: number; tokens: TokenBreakdown; typicalMinutes: [number, number] }>;
+type PerDepth = { quick?: PerModel; standard?: PerModel };
 
 function steps(status: string, hasReport: boolean): Step[] {
   const failed = ["failed", "failed_budget", "cancelled"].includes(status);
@@ -40,7 +41,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   if (!job) notFound();
   const q = job.quote;
   const models = enabledModels(loadModels());
-  const breakdown = (q?.breakdown ?? {}) as { chosen?: TokenBreakdown; perModel?: PerModel; reasons?: string[]; auditScope?: string; excluded?: { language: string; code: number; files: number; reason: string }[]; description?: string | null; archived?: boolean };
+  const breakdown = (q?.breakdown ?? {}) as { chosen?: TokenBreakdown; perModel?: PerModel; perDepth?: PerDepth; reasons?: string[]; auditScope?: string; excluded?: { language: string; code: number; files: number; reason: string }[]; description?: string | null; archived?: boolean };
   const rawScope = (q?.scope ?? null) as Partial<Scope> | null;
   const scope: Scope | null = rawScope && Array.isArray(rawScope.checklists) ? { checklists: rawScope.checklists, vectorGroups: rawScope.vectorGroups ?? [], itemCount: rawScope.itemCount ?? 0, vectorCount: rawScope.vectorCount ?? 0, checklistFraction: rawScope.checklistFraction ?? 0, vectorFraction: rawScope.vectorFraction ?? 0, reasons: rawScope.reasons ?? [] } : null;
   const languages = (q?.languages ?? {}) as unknown as LanguageMix;
@@ -50,7 +51,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const canConfigure = job.status === "quoted" && !!q && q.expiresAt.getTime() > Date.now();
   const expired = job.status === "quoted" && !!q && q.expiresAt.getTime() <= Date.now();
   const reportHref = job.report ? `/r/${job.owner}/${job.repo}/${job.report.commit}${job.report.visibility === "private" ? `?t=${job.report.accessToken}` : ""}` : null;
-  const chosen = breakdown.perModel?.[q?.model ?? ""] ?? null;
+  const chosen = breakdown.perDepth?.standard?.[q?.model ?? ""] ?? breakdown.perModel?.[q?.model ?? ""] ?? null;
+  const depthLabel = job.depth === "quick" ? "Quick scan" : "Standard audit";
+  const running = breakdown.perDepth?.[job.depth === "quick" ? "quick" : "standard"]?.[job.model] ?? chosen;
   const headroomPct = Math.round((LIMIT_HEADROOM - 1) * 100);
 
   return (
@@ -69,7 +72,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             </h1>
             <p className="mono mt-2 text-sm text-[var(--muted)]">
               {job.ref ? `ref ${job.ref}` : "default branch"} · commit{" "}
-              {job.commitSha ? <a href={`${job.repoUrl}/commit/${job.commitSha}`} target="_blank" rel="noreferrer" className="text-white">{shortSha(job.commitSha)}</a> : "resolving…"} · {job.scope} scope · {job.visibility}
+              {job.commitSha ? <a href={`${job.repoUrl}/commit/${job.commitSha}`} target="_blank" rel="noreferrer" className="text-white">{shortSha(job.commitSha)}</a> : "resolving…"} · {job.status === "quoted" ? "" : `${depthLabel} · `}{job.scope} scope · {job.visibility}
             </p>
             {breakdown.description && <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">{breakdown.description}</p>}
           </div>
@@ -80,7 +83,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         </div>
         {LIVE.has(job.status) && (
           <p className="mt-4 text-sm text-[var(--muted)]">
-            This page refreshes itself while the job is running. The audit takes {chosen ? `${chosen.typicalMinutes[0]}–${chosen.typicalMinutes[1]}` : "15–25"} minutes.
+            This page refreshes itself while the job is running. A {depthLabel.toLowerCase()} takes {running ? `${running.typicalMinutes[0]}–${running.typicalMinutes[1]}` : "35–60"} minutes.
             {" "}You can also watch the runner on <a href={actionsUrl()} target="_blank" rel="noreferrer" className="underline">GitHub Actions</a>.
           </p>
         )}
@@ -189,41 +192,78 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           </section>
 
           <section className="card p-5">
-            <h2 className="text-lg font-semibold">Estimated cost on your key</h2>
+            <h2 className="text-lg font-semibold">Two depths</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Both run the same corpus on the same commit, in the corpus&apos;s strict mode, and produce a public or private report with an on-chain attestation. They differ in how much of the corpus the model works through.
+            </p>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="rounded-md border border-[var(--border)] p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="font-semibold">Quick scan</h3>
+                  <span className="mono text-xs text-[var(--muted)]">/auditor:quick-scan</span>
+                </div>
+                <p className="mt-2 text-sm text-[var(--muted)]">A triage pass. The corpus picks the checklist sections and known-vector files that apply to what it detects in the code, and the model reads every one of them in a single session, with no sub-agents.</p>
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                  <li>Covers the highest-yield subset, not every checklist item.</li>
+                  <li>No false-positive validation pass and no maturity scorecard.</li>
+                  <li>Use it for a first look, a cheap check before asking for a full audit, or a re-check after a fix.</li>
+                </ul>
+              </div>
+              <div className="rounded-md border border-[var(--border-strong)] p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="font-semibold">Standard audit</h3>
+                  <span className="mono text-xs text-[var(--muted)]">/auditor:audit</span>
+                </div>
+                <p className="mt-2 text-sm text-[var(--muted)]">The full scope-gated audit. Every in-scope checklist item and known vector gets an explicit verdict, findings of severity 6 and up must pass the corpus&apos;s validation gate, and the report ends with a maturity scorecard and a remediation plan.</p>
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                  <li>Covers every in-scope item; nothing is skipped silently.</li>
+                  <li>Uses sub-agents for context reconstruction and false-positive review.</li>
+                  <li>Use it before a deployment, or when you want the report others will read.</li>
+                </ul>
+              </div>
+            </div>
+
+            <h3 className="mt-6 font-semibold">Estimated cost on your key</h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              We charge nothing. The model is billed to your Anthropic account at list prices. The figures below are upper bounds for a normal run
-              (fitted on our own audits with a {Number(q.calibration)}× safety factor, see <a href={`${siteRepoUrl()}/blob/main/docs/calibration.md`} target="_blank" rel="noreferrer" className="underline">docs/calibration.md</a>).
+              We charge nothing. The model is billed to your Anthropic account at list prices. Each figure is an upper bound for a normal run: Standard is fitted on our own audits, Quick on the corpus&apos;s measured runs, both with a {Number(q.calibration)}× safety factor (<a href={`${siteRepoUrl()}/blob/main/docs/calibration.md`} target="_blank" rel="noreferrer" className="underline">docs/calibration.md</a>). The spend limit column is what to set on your workspace.
             </p>
             <div className="mt-3 overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr>
                     <th>Model</th>
-                    <th>Estimated cost</th>
-                    <th>Set the spend limit to</th>
-                    <th>Typical time</th>
-                    <th>Tokens read (mostly cached)</th>
-                    <th>Tokens written</th>
+                    <th>Quick: cost</th>
+                    <th>Quick: limit</th>
+                    <th>Quick: time</th>
+                    <th>Standard: cost</th>
+                    <th>Standard: limit</th>
+                    <th>Standard: time</th>
                   </tr>
                 </thead>
                 <tbody>
                   {models.map((m) => {
-                    const pm = breakdown.perModel?.[m.id];
-                    if (!pm) return null;
+                    const qk = breakdown.perDepth?.quick?.[m.id];
+                    const st = breakdown.perDepth?.standard?.[m.id] ?? breakdown.perModel?.[m.id];
+                    if (!st) return null;
                     return (
                       <tr key={m.id} className={m.id === q.model ? "font-semibold" : ""}>
-                        <td className="mono">{m.id}</td>
-                        <td className="mono">{usd(pm.estCostUsd)}</td>
-                        <td className="mono">{usd(pm.suggestedLimitUsd, 0)}</td>
-                        <td className="mono">{pm.typicalMinutes[0]}–{pm.typicalMinutes[1]} min</td>
-                        <td className="mono">{int(pm.tokens.inputTotal)}</td>
-                        <td className="mono">{int(pm.tokens.output)}</td>
+                        <td>
+                          <span className="mono">{m.id}</span>
+                          {m.id === q.model && <span className="ml-2 text-xs text-[var(--muted)]">default</span>}
+                        </td>
+                        <td className="mono">{qk ? usd(qk.estCostUsd) : "n/a"}</td>
+                        <td className="mono">{qk ? usd(qk.suggestedLimitUsd, 0) : "n/a"}</td>
+                        <td className="mono">{qk ? `${qk.typicalMinutes[0]}–${qk.typicalMinutes[1]} min` : "n/a"}</td>
+                        <td className="mono">{usd(st.estCostUsd)}</td>
+                        <td className="mono">{usd(st.suggestedLimitUsd, 0)}</td>
+                        <td className="mono">{st.typicalMinutes[0]}–{st.typicalMinutes[1]} min</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
+            {!breakdown.perDepth && <p className="mt-2 text-xs text-[var(--dim)]">This estimate was made before Quick scans existed. Submit the repository again to see both depths.</p>}
           </section>
 
           {/* Step 2: key */}
@@ -238,9 +278,8 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                   Open <a href="https://platform.claude.com/settings/workspaces" target="_blank" rel="noreferrer" className="underline">Console → Settings → Workspaces</a> and click <b>Create workspace</b>. Name it something like <span className="mono">audit-{job.repo}</span>.
                 </li>
                 <li>
-                  In that workspace, open <b>Limits</b> and set the <b>monthly spend limit</b> to{" "}
-                  <b className="mono">{chosen ? usd(chosen.suggestedLimitUsd, 0) : "the figure in the table"}</b>
-                  {" "}(the estimate plus {headroomPct}% headroom). If the limit is hit, the run stops and you get no report, so do not go lower.
+                  In that workspace, open <b>Limits</b> and set the <b>monthly spend limit</b> to the figure in the table above for the depth and model you will pick (the estimate plus {headroomPct}% headroom). For a Standard audit on {q.model}, that is{" "}
+                  <b className="mono">{chosen ? usd(chosen.suggestedLimitUsd, 0) : "the figure in the table"}</b>. If the limit is hit, the run stops and you get no report, so do not go lower.
                 </li>
                 <li>
                   Open <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noreferrer" className="underline">API keys</a>, click <b>Create key</b>, pick the new workspace, copy the key.
@@ -253,6 +292,17 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               <form action={startAudit} className="mt-4 grid gap-6 md:grid-cols-2">
                 <input type="hidden" name="jobId" value={job.id} />
                 <div className="space-y-4 text-sm">
+                  <fieldset className="space-y-2">
+                    <legend className="font-semibold">Depth</legend>
+                    <label className="flex items-start gap-3 rounded-md border border-[var(--border)] p-3">
+                      <input type="radio" name="depth" value="standard" defaultChecked={job.depth !== "quick"} className="mt-1" />
+                      <span><b>Standard audit</b>. Every in-scope item gets a verdict. {breakdown.perDepth?.standard?.[q.model] ? `About ${usd(breakdown.perDepth.standard[q.model]!.estCostUsd, 0)} on ${q.model}.` : ""}</span>
+                    </label>
+                    <label className="flex items-start gap-3 rounded-md border border-[var(--border)] p-3">
+                      <input type="radio" name="depth" value="quick" defaultChecked={job.depth === "quick"} className="mt-1" disabled={!breakdown.perDepth} />
+                      <span><b>Quick scan</b>. The highest-yield subset, one session. {breakdown.perDepth?.quick?.[q.model] ? `About ${usd(breakdown.perDepth.quick[q.model]!.estCostUsd, 0)} on ${q.model}.` : ""}</span>
+                    </label>
+                  </fieldset>
                   <label className="block">
                     <span className="font-semibold">Anthropic API key</span>
                     <input name="byokKey" type="password" required placeholder="sk-ant-…" autoComplete="off" className="input input-sq mono mt-2 py-2 text-xs" />

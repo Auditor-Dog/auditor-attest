@@ -47,7 +47,7 @@ export function loadEnv(): WorkerEnv {
     repoRoot,
     reportsDir: rel(process.env.REPORTS_DIR, "reports"),
     corpusDir: rel(process.env.CORPUS_DIR, "vendor/auditor-skill"),
-    corpusVersion: process.env.CORPUS_VERSION ?? "7.3.0@6bb2cbf",
+    corpusVersion: process.env.CORPUS_VERSION ?? "7.7.5@8ecccb4",
     jobsDir: process.env.JOBS_DIR && process.env.JOBS_DIR.length ? process.env.JOBS_DIR : "/tmp/auditor-jobs",
     sandboxImage: process.env.SANDBOX_IMAGE ?? "auditor-sandbox:latest",
     egressProxyImage: process.env.EGRESS_PROXY_IMAGE ?? "auditor-egress-proxy:latest",

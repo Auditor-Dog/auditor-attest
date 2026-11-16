@@ -45,7 +45,7 @@ if [ ! -f vendor/auditor-skill/.claude-plugin/plugin.json ]; then
   step "corpus submodule"
   git submodule update --init vendor/auditor-skill
 fi
-[ "$(git -C vendor/auditor-skill rev-parse HEAD)" = "6bb2cbfb64334b0d1af8f1003d2f61ff3157ef52" ] || { echo "vendor/auditor-skill is not at 6bb2cbf" >&2; exit 1; }
+[ "$(git -C vendor/auditor-skill rev-parse HEAD)" = "8ecccb4a4013d296c1798ba279c1af605f47d317" ] || { echo "vendor/auditor-skill is not at 8ecccb4" >&2; exit 1; }
 
 # ── dependencies ────────────────────────────────────────────────────────────
 step "dependencies"

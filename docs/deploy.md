@@ -58,7 +58,7 @@ Three free services, one public repository.
    | `NEXT_PUBLIC_SITE_URL` | `https://<your-vercel-domain>` |
    | `CLUSTER` | `devnet` |
    | `AUDIT_ATTEST_PROGRAM_ID` | `sXtvdoheTtFBukx8vCppJHhiiJHW2xa3xc5KaPAhzkC` |
-   | `CORPUS_VERSION` | `7.3.0@6bb2cbf` |
+   | `CORPUS_VERSION` | `7.7.5@8ecccb4` |
 
 4. Deploy. Every push to `main` (including the runner's report commits) redeploys.
 

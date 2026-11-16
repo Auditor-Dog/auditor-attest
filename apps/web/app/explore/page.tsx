@@ -109,6 +109,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                   <SeverityBadges size="sm" counts={{ critical: r.critical, high: r.high, medium: r.medium, low: r.low, info: r.info }} />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-x-3 text-xs text-[var(--dim)]">
+                  {r.depth === "quick" && <span className="text-white">Quick scan</span>}
                   <span className="mono">{r.model}</span>
                   <span>{when(r.finishedAt ?? r.createdAt)}</span>
                   {vis === "public_redacted" && <span>redacted</span>}
