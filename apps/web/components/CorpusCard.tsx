@@ -1,4 +1,4 @@
-import { githubToken } from "@/lib/env";
+import { corpusVersion, githubToken } from "@/lib/env";
 
 export const CORPUS_REPO = "solanabr/auditor-skill";
 export const CORPUS_URL = `https://github.com/${CORPUS_REPO}`;
@@ -45,7 +45,7 @@ export async function CorpusCard() {
           </>
         )}
         <div><dt className="inline">license </dt><dd className="inline text-white">{info?.license?.spdx_id ?? "MIT"}</dd></div>
-        <div><dt className="inline">pinned here </dt><dd className="inline text-white">7.7.5@8ecccb4</dd></div>
+        <div><dt className="inline">pinned here </dt><dd className="inline text-white">{corpusVersion()}</dd></div>
       </dl>
       {topics.length > 0 && (
         <ul className="mt-3 flex flex-wrap gap-1.5">

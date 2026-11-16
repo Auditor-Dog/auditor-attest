@@ -28,6 +28,13 @@ export const CORPUS_FULL_TOKENS = {
   templatesAndDiscovery: 32_000,
 } as const;
 
+/**
+ * The corpus version this code is written against (vendor/auditor-skill submodule).
+ * Bump together with the submodule pointer. The web reads this, not an env var, so a
+ * stale deployment variable cannot show the wrong version.
+ */
+export const CORPUS_VERSION = "7.7.5@8ecccb4";
+
 /** Item and vector totals the corpus ships with (SKILL.md, known-vectors/INDEX.md), 7.7.5. */
 export const TOTAL_CHECKLIST_ITEMS = 1_465;
 export const TOTAL_KNOWN_VECTORS = 141;

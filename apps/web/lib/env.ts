@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { findRepoRoot } from "@auditor/pricing";
+import { CORPUS_VERSION, findRepoRoot } from "@auditor/pricing";
 
 export function repoRoot(): string {
   return findRepoRoot(process.cwd());
@@ -11,7 +11,7 @@ export function reportsDir(): string {
 }
 
 export function corpusVersion(): string {
-  return process.env.CORPUS_VERSION ?? "7.7.5@8ecccb4";
+  return CORPUS_VERSION;
 }
 
 export function siteUrl(): string {
